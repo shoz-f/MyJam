@@ -178,6 +178,7 @@ main( int argc, char **argv, char **arg_environ )
 	const char	*all = "all";
 	int		anyhow = 0;
 	int		status;
+	char*          userbase;
 
 # ifdef OS_MAC
 	InitGraf(&qd.thePort);
@@ -190,7 +191,7 @@ main( int argc, char **argv, char **arg_environ )
 	    printf( "\nusage: jam [ options ] targets...\n\n" );
 
             printf( "-a      Build all targets, even if they are current.\n" );
-				    printf( "-b      Print built-in Jambase.\n" );         
+	    printf( "-b      Print built-in Jambase.\n" );         
             printf( "-dx     Display (a)actions (c)causes (d)dependencies\n" );
 	    printf( "        (m)make tree (x)commands (0-9) debug levels.\n" );
             printf( "-fx     Read x instead of Jambase.\n" );
@@ -351,11 +352,19 @@ main( int argc, char **argv, char **arg_environ )
 
 	/* Parse ruleset */
 
-	for( n = 0; (s = getoptval( optv, 'f', n )) != 0; n++ )
+	for( n = 0; (s = getoptval( optv, 'f', n )) != 0; n++ ) {
 	    parse_file( s );
+	}
 
-	if( !n )
-	    parse_file( "+" );
+	if (!n) {
+		userbase = getenv("JAMBASE");
+		if (userbase) {
+		    parse_file(userbase);
+		}
+		else {
+			parse_file( "+" );
+		}
+	}
 
 	status = yyanyerrors();
 
