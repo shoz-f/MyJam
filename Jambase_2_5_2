@@ -154,7 +154,7 @@
 
 # for perforce use -- jambase version
 
-JAMBASEDATE = 2012.07.01 ;
+JAMBASEDATE = 2004.10.07 ;
 
 # Initialize variables
 #
@@ -1855,7 +1855,6 @@ rule Object
     switch $(>:S)
     {
         case .asm : As $(<) : $(>) ;
-        case .S :   Cc $(<) : $(>) ;
         case .c :   Cc $(<) : $(>) ;
         case .C :   C++ $(<) : $(>) ;
         case .cc :  C++ $(<) : $(>) ;
@@ -1919,8 +1918,7 @@ rule ObjectHdrs
     # Add to HDRS for HdrScan's benefit.
     # must reformat CCHDRS according to headers
 
-#    local s = [ FGristFiles $(<:S=$(SUFOBJ)) ] ;
-    local s = $(<:S=$(SUFOBJ)) ;
+    local s = [ FGristFiles $(<:S=$(SUFOBJ)) ] ;
 
     HDRS on $(s) += $(>) ;
     CCHDRS on $(s) = [ on $(s) FIncludes $(HDRS) ] ;

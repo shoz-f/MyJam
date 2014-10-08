@@ -20,6 +20,7 @@
  *	builtin_glob() - GLOB rule
  *	builtin_match() - MATCH rule
  *  builtin_hdrmacro() - HDRMACRO rule
+ *  builtin_subst() - SUBST rule
  *
  * 01/10/01 (seiwald) - split from compile.c
  * 01/08/01 (seiwald) - new 'Glob' (file expansion) builtin
@@ -58,6 +59,7 @@ LIST *builtin_flags( PARSE *parse, LOL *args, int *jmp );
 LIST *builtin_glob( PARSE *parse, LOL *args, int *jmp );
 LIST *builtin_match( PARSE *parse, LOL *args, int *jmp );
 LIST *builtin_hdrmacro( PARSE *parse, LOL *args, int *jmp );
+LIST *builtin_subst( PARSE *parse, LOL *args, int *jmp );
 
 int glob( const char *s, const char *c );
 
@@ -118,6 +120,10 @@ load_builtins()
     bindrule( "HdrMacro" )->procedure = 
     bindrule( "HDRMACRO" )->procedure = 
 	parse_make( builtin_hdrmacro, P0, P0, P0, C0, C0, 0 );
+
+    bindrule( "subst" )->procedure = 
+    bindrule( "SUBST" )->procedure = 
+	parse_make( builtin_subst, P0, P0, P0, C0, C0, 0 );
 }
 
 /*
@@ -348,3 +354,41 @@ builtin_hdrmacro(
 
   return L0;
 }
+
+extern void substitute( const char* src, const char* pat, const char* rep,
+                        char* target );
+
+LIST*
+builtin_subst(
+    PARSE    *parse,
+    LOL      *args, 
+	int      *jmp )
+{
+  LIST*         result;
+  const char*   source;
+  const char*   pattern;
+  const char*   replacement;
+  char          target[ 4096 ];
+  LIST*         l;
+
+  result = L0;
+  
+  l = lol_get( args, 0 );
+  if (!l) goto Exit;
+  source = l->string;
+  
+  l = list_next( l );
+  if (!l) goto Exit;
+  pattern = l->string;
+  
+  l = list_next( l );
+  if (!l) goto Exit;
+  replacement = l->string;
+
+  substitute( source, pattern, replacement, target );
+  result = list_append( result, list_new( L0, newstr( target ), 0 ) );
+
+Exit:  
+  return result;
+}
+

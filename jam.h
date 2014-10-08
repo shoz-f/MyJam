@@ -88,6 +88,7 @@
 # include <signal.h>
 # include <string.h>
 # include <time.h>
+# include <Windows.h>
 
 # define OSMAJOR "NT=true"
 # define OSMINOR "OS=NT"

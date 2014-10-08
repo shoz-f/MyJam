@@ -92,7 +92,7 @@ var_defines( const char **e )
 # endif
 	    {
 		LIST *l = L0;
-		const char *pp, *p;
+		char *pp, *p;
 # ifdef OS_MAC
 		char split = ',';
 # else
@@ -111,7 +111,40 @@ var_defines( const char **e )
 		}
 
 		/* Do the split */
+#if 1
+		pp = val + 1;
+	        for (;;) {
+		    while (*pp == split) pp++;
 
+		    if (*pp == '\0') {
+			break;
+
+		    } else if (*pp == '"') {
+			pp++;
+			p = buf;
+			while (*pp) {
+			    if (*pp == '"') {
+				pp++;
+				break;
+			    }
+			    *p++ = *pp++;
+		    	}
+			*p = '\0';
+
+		    } else {
+			p = buf;
+			while (*pp) {
+			    if (*pp == split) {
+				pp++;
+				break;
+			    }
+			    *p++ = *pp++;
+		    	}
+			*p = '\0';
+		    }
+		    l = list_new( l, buf, 0 );
+		}
+#else
 		for( pp = val + 1; p = strchr( pp, split ); pp = p + 1 )
 		{
 		    int  len = p - pp;
@@ -125,6 +158,7 @@ var_defines( const char **e )
 		}
 
 		l = list_new( l, pp, 0 );
+#endif
 
 		/* Get name */
 

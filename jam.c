@@ -118,6 +118,8 @@
 # include "timestamp.h"
 # include "make.h"
 
+#include "jambase.h"
+
 /* Macintosh is "special" */
 
 # ifdef OS_MAC
@@ -183,11 +185,12 @@ main( int argc, char **argv, char **arg_environ )
 
 	argc--, argv++;
 
-	if( ( num_targets = getoptions( argc, argv, "d:j:f:gs:t:ano:qv", optv, targets ) ) < 0 )
+	if( ( num_targets = getoptions( argc, argv, "d:j:f:gs:t:ano:qvb", optv, targets ) ) < 0 )
 	{
 	    printf( "\nusage: jam [ options ] targets...\n\n" );
 
             printf( "-a      Build all targets, even if they are current.\n" );
+				    printf( "-b      Print built-in Jambase.\n" );         
             printf( "-dx     Display (a)actions (c)causes (d)dependencies\n" );
 	    printf( "        (m)make tree (x)commands (0-9) debug levels.\n" );
             printf( "-fx     Read x instead of Jambase.\n" );
@@ -214,6 +217,14 @@ main( int argc, char **argv, char **arg_environ )
 	}
 
 	/* Pick up interesting options */
+	if ((s = getoptval(optv, 'b', 0))) {
+	    char** line = jambase;
+	    while (*line) {
+		printf("%s", *line);
+		line++;
+	    }
+	    return EXITOK;
+	}
 
 	if( ( s = getoptval( optv, 'n', 0 ) ) )
 	    globs.noexec++, DEBUG_MAKE = DEBUG_MAKEQ = DEBUG_EXEC = 1; 
@@ -302,6 +313,17 @@ main( int argc, char **argv, char **arg_environ )
 	    }
 	}
 # endif /* unix */
+
+# ifdef NT
+        {
+            char buf[260];
+            int  bytes;
+            bytes = GetModuleFileName(NULL, buf, 260);
+            if (bytes > 0) {
+                var_set("JAM_EXEC", list_new(L0, buf, 0), VAR_SET);
+            }
+        }
+# endif
 
 	/*
 	 * Jam defined variables OS, OSPLAT

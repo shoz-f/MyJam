@@ -49,7 +49,7 @@ DELDIR       := rmdir
 #
 JAMEXE       := jam
 
-INSTALL         := /usr/bin/install -c
+INSTALL         := /bin/install -c
 INSTALL_PROGRAM := ${INSTALL}
 MKINSTALLDIRS   := builds/unix/mkinstalldirs
 

@@ -130,6 +130,11 @@ Main            jam : jam.c jambase.c ;
 LinkLibraries 	jam : libjam.a ;
 GenFile 	    jambase.c : mkjambase Jambase ;
 
+if $(NT)
+{
+	LINKLIBS = kernel32.lib ;
+}
+
 if $(UNIX)
 {
   actions Strip
@@ -145,7 +150,7 @@ Library         libjam.a :
 		    glob.c hash.c headers.c lists.c make.c make1.c
 		    newstr.c option.c parse.c regexp.c rules.c scan.c
 		    search.c timestamp.c variable.c
-		    hdrmacro.c
+		    hdrmacro.c subst.c
 		    ;
 
 # Strip the Jam executable on Mingw

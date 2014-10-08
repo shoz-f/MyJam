@@ -1,0 +1,537 @@
+Only in ftjam: bin.ntx86
+Common subdirectories: ftjam-2.3.5/builds and ftjam/builds
+diff -c ftjam-2.3.5/jam.c ftjam/jam.c
+*** ftjam-2.3.5/jam.c	Mon Jul 30 09:00:49 2001
+--- ftjam/jam.c	Fri Nov 25 00:56:50 2005
+***************
+*** 108,113 ****
+--- 108,115 ----
+  # include "timestamp.h"
+  # include "make.h"
+  
++ #include "jambase.h"
++ 
+  /* Macintosh is "special" */
+  
+  # ifdef OS_MAC
+***************
+*** 176,186 ****
+  
+  	argc--, argv++;
+  
+! 	if( ( n = getoptions( argc, argv, "d:j:f:s:t:ano:v", optv ) ) < 0 )
+  	{
+  	    printf( "\nusage: jam [ options ] targets...\n\n" );
+  
+              printf( "-a      Build all targets, even if they are current.\n" );
+              printf( "-dx     Set the debug level to x (0-9).\n" );
+              printf( "-fx     Read x instead of Jambase.\n" );
+              printf( "-jx     Run up to x shell commands concurrently.\n" );
+--- 178,189 ----
+  
+  	argc--, argv++;
+  
+! 	if( ( n = getoptions( argc, argv, "d:j:f:s:t:ano:vb", optv ) ) < 0 )
+  	{
+  	    printf( "\nusage: jam [ options ] targets...\n\n" );
+  
+              printf( "-a      Build all targets, even if they are current.\n" );
++ 	    printf( "-b      Print built-in Jambase.\n" );
+              printf( "-dx     Set the debug level to x (0-9).\n" );
+              printf( "-fx     Read x instead of Jambase.\n" );
+              printf( "-jx     Run up to x shell commands concurrently.\n" );
+***************
+*** 208,213 ****
+--- 211,223 ----
+  	}
+  
+  	/* Pick up interesting options */
++ 	if ((s = getoptval(optv, 'b', 0))) {
++ 	    char** line = jambase;
++ 	    while (*line) {
++ 		printf("%s", *line);
++ 		line++;
++ 	    }
++ 	}
+  
+  	if( ( s = getoptval( optv, 'n', 0 ) ) )
+  	    globs.noexec++, globs.debug[2] = 1;
+diff -c ftjam-2.3.5/Jambase ftjam/Jambase
+*** ftjam-2.3.5/Jambase	Mon Jul 30 09:00:39 2001
+--- ftjam/Jambase	Mon Dec 26 07:34:18 2005
+***************
+*** 254,264 ****
+      {
+      ECHO "Compiler is Borland C++" ;
+  
+!     AR          ?= tlib /C /P64 ;
+      CC          ?= bcc32 ;
+      CCFLAGS     ?= -q -y -d -v -w-par -w-ccc -w-rch -w-pro -w-aus ;
+      C++         ?= bcc32 ;
+      C++FLAGS    ?= -q -y -d -v -w-par -w-ccc -w-rch -w-pro -w-aus -P ;
+      LINK        ?= $(CC) ;
+      LINKFLAGS   ?= $(CCFLAGS) ;
+      STDLIBPATH  ?= $(BORLANDC)\\lib ;
+--- 254,267 ----
+      {
+      ECHO "Compiler is Borland C++" ;
+  
+!     AR          ?= tlib /C /P512 ;
+!     AS          ?= nasmw ;
+      CC          ?= bcc32 ;
+      CCFLAGS     ?= -q -y -d -v -w-par -w-ccc -w-rch -w-pro -w-aus ;
+      C++         ?= bcc32 ;
+      C++FLAGS    ?= -q -y -d -v -w-par -w-ccc -w-rch -w-pro -w-aus -P ;
++     RC          ?= brcc32 ;
++     RCFLAGS     ?= "" ;
+      LINK        ?= $(CC) ;
+      LINKFLAGS   ?= $(CCFLAGS) ;
+      STDLIBPATH  ?= $(BORLANDC)\\lib ;
+***************
+*** 295,315 ****
+      ECHO "Compiler is Microsoft Visual C++" ;
+  
+      AR          ?= lib ;
+!     AS          ?= masm386 ;
+      CC          ?= cl /nologo ;
+      CCFLAGS     ?= "" ;
+      C++         ?= $(CC) ;
+      C++FLAGS    ?= $(CCFLAGS) ;
+      LINK        ?= link /nologo ;
+      LINKFLAGS   ?= "" ;
+!     LINKLIBS    ?= $(VISUALC)\\lib\\advapi32.lib
+!                    $(VISUALC)\\lib\\libc.lib
+!                    $(VISUALC)\\lib\\oldnames.lib
+!                    $(VISUALC)\\lib\\gdi32.lib
+!                    $(VISUALC)\\lib\\user32.lib
+!                    $(VISUALC)\\lib\\kernel32.lib ;
+      OPTIM       ?= "" ;
+!     STDHDRS     ?= $(VISUALC)\\include ;
+      UNDEFFLAG   ?= "/u _" ;
+      }
+      else if $(TOOLSET) = INTELC
+--- 298,321 ----
+      ECHO "Compiler is Microsoft Visual C++" ;
+  
+      AR          ?= lib ;
+!     AS          ?= nasmw ;
+! #    AS          ?= masm386 ;
+      CC          ?= cl /nologo ;
+      CCFLAGS     ?= "" ;
+      C++         ?= $(CC) ;
+      C++FLAGS    ?= $(CCFLAGS) ;
++     RC          ?= rc ;
++     RCFLAGS     ?= /l 0x411 ;
+      LINK        ?= link /nologo ;
+      LINKFLAGS   ?= "" ;
+!     LINKLIBS    ?= \"$(VISUALC)\\lib\\advapi32.lib\"
+!                    \"$(VISUALC)\\lib\\libc.lib\"
+!                    \"$(VISUALC)\\lib\\oldnames.lib\"
+!                    \"$(VISUALC)\\lib\\gdi32.lib\"
+!                    \"$(VISUALC)\\lib\\user32.lib\"
+!                    \"$(VISUALC)\\lib\\kernel32.lib\" ;
+      OPTIM       ?= "" ;
+!     STDHDRS     ?= \"$(VISUALC)\\include\" ;
+      UNDEFFLAG   ?= "/u _" ;
+      }
+      else if $(TOOLSET) = INTELC
+***************
+*** 1164,1169 ****
+--- 1170,1193 ----
+      NEEDLIBS on $(_t) += $(>:S=$(SUFLIB)) ;
+  }
+  
++ rule LinkResource
++ {
++     local _s = [ FGristFiles $(>) ] ;
++     local _r = $(_s:S=.res) ;
++     local _t = [ FAppendSuffix $(<) : $(SUFEXE) ] ;
++ 
++     DEPENDS $(_t) : $(_r) ;
++     DEPENDS $(_r) : $(_s) ;
++ 
++     LOCATE on $(_r) = $(LOCATE_TARGET) ;
++     SEARCH on $(_s) = $(SEARCH_SOURCE) ;
++     RESOURCE on $(_t) = $(_r) ;
++ 
++     Rc $(_r) : $(_s) ;
++ 
++     Clean clean : $(_r) ;
++ }
++ 
+  rule Main
+  {
+      MainFromObjects $(<) : $(>:S=$(SUFOBJ)) ;
+***************
+*** 1664,1670 ****
+      return $(_s) ;
+  }
+  
+- 
+  rule _makeCommon
+  {
+      # strip common initial elements
+--- 1688,1693 ----
+***************
+*** 1677,1683 ****
+      }
+  }
+  
+- 
+  rule FRelPath
+  {
+      local _l _r ;
+--- 1700,1705 ----
+***************
+*** 1746,1752 ****
+      }
+  }
+  
+- 
+  rule FConvertToSlashes
+  {
+    local _d, _s, _i ;
+--- 1768,1773 ----
+***************
+*** 1761,1767 ****
+    return $(_s) ;
+  }
+  
+- 
+  #
+  # Actions
+  #
+--- 1782,1787 ----
+***************
+*** 1936,1943 ****
+  
+      actions As
+      {
+!     $(AS) /Ml /p /v /w2 $(>) $(<) ,nul,nul;
+!     }
+  
+      actions Cc
+      {
+--- 1956,1968 ----
+  
+      actions As
+      {
+!     $(AS) -dWIN32 -f win32 -o $(<) $(>)  
+!     }                                            
+! 
+! #    actions As
+! #    {
+! #    $(AS) /Ml /p /v /w2 $(>) $(<) ,nul,nul;
+! #    }
+  
+      actions Cc
+      {
+***************
+*** 1949,1957 ****
+      $(C++) /c $(C++FLAGS) $(OPTIM) /Fo$(<) /I$(HDRS) /I$(STDHDRS) /Tp$(>)
+      }
+  
+!     actions Link bind NEEDLIBS
+      {
+!     $(LINK) $(LINKFLAGS) /out:$(<) $(UNDEFS) $(>) $(NEEDLIBS) $(LINKLIBS)
+      }
+    }
+    else if $(TOOLSET) = VISUALC16
+--- 1974,1987 ----
+      $(C++) /c $(C++FLAGS) $(OPTIM) /Fo$(<) /I$(HDRS) /I$(STDHDRS) /Tp$(>)
+      }
+  
+!     actions Rc
+      {
+!     $(RC) $(RCFLAGS) /i$(HDRS) /fo $(<) $(>) 
+!     }
+!     
+!     actions Link bind NEEDLIBS RESOURCE
+!     {
+!     $(LINK) $(LINKFLAGS) /out:$(<) $(UNDEFS) $(>) $(NEEDLIBS) $(LINKLIBS) $(RESOURCE)
+      }
+    }
+    else if $(TOOLSET) = VISUALC16
+***************
+*** 1983,1993 ****
+      $(AR) $(<) -+$(>)
+      }
+  
+!     actions Link bind NEEDLIBS
+      {
+!     $(LINK) -e$(<) $(LINKFLAGS) $(UNDEFS) -L$(LINKLIBS) $(NEEDLIBS) $(>)
+      }
+! 
+      actions C++
+      {
+      $(C++) -c $(C++FLAGS) $(OPTIM) -I$(HDRS) -o$(<) $(>)
+--- 2013,2023 ----
+      $(AR) $(<) -+$(>)
+      }
+  
+!     actions As
+      {
+!     $(AS) -dWIN32 -f obj -o $(<) $(>)
+      }
+!     
+      actions C++
+      {
+      $(C++) -c $(C++FLAGS) $(OPTIM) -I$(HDRS) -o$(<) $(>)
+***************
+*** 1998,2003 ****
+--- 2028,2042 ----
+      $(CC) -c $(CCFLAGS) $(OPTIM) -I$(HDRS) -o$(<) $(>)
+      }
+  
++     actions Rc
++     {
++     $(RC) $(RCFLAGS) -i$(HDRS) -fo $(<) $(>)
++     }
++ 
++     actions Link bind NEEDLIBS
++     {
++     $(LINK) -e$(<) $(LINKFLAGS) $(UNDEFS) $(LINKLIBS) $(NEEDLIBS) $(>)
++     }
+    }
+    else if $(TOOLSET) = MINGW
+    {
+diff -c ftjam-2.3.5/jambase.c ftjam/jambase.c
+*** ftjam-2.3.5/jambase.c	Mon Jul 30 09:03:50 2001
+--- ftjam/jambase.c	Mon Dec 26 07:35:35 2005
+***************
+*** 79,89 ****
+  "if $(TOOLSET) = BORLANDC\n",
+  "{\n",
+  "ECHO \"Compiler is Borland C++\" ;\n",
+! "AR          ?= tlib /C /P64 ;\n",
+  "CC          ?= bcc32 ;\n",
+  "CCFLAGS     ?= -q -y -d -v -w-par -w-ccc -w-rch -w-pro -w-aus ;\n",
+  "C++         ?= bcc32 ;\n",
+  "C++FLAGS    ?= -q -y -d -v -w-par -w-ccc -w-rch -w-pro -w-aus -P ;\n",
+  "LINK        ?= $(CC) ;\n",
+  "LINKFLAGS   ?= $(CCFLAGS) ;\n",
+  "STDLIBPATH  ?= $(BORLANDC)\\\\lib ;\n",
+--- 79,92 ----
+  "if $(TOOLSET) = BORLANDC\n",
+  "{\n",
+  "ECHO \"Compiler is Borland C++\" ;\n",
+! "AR          ?= tlib /C /P512 ;\n",
+! "AS          ?= nasmw ;\n",
+  "CC          ?= bcc32 ;\n",
+  "CCFLAGS     ?= -q -y -d -v -w-par -w-ccc -w-rch -w-pro -w-aus ;\n",
+  "C++         ?= bcc32 ;\n",
+  "C++FLAGS    ?= -q -y -d -v -w-par -w-ccc -w-rch -w-pro -w-aus -P ;\n",
++ "RC          ?= brcc32 ;\n",
++ "RCFLAGS     ?= \"\" ;\n",
+  "LINK        ?= $(CC) ;\n",
+  "LINKFLAGS   ?= $(CCFLAGS) ;\n",
+  "STDLIBPATH  ?= $(BORLANDC)\\\\lib ;\n",
+***************
+*** 114,134 ****
+  "{\n",
+  "ECHO \"Compiler is Microsoft Visual C++\" ;\n",
+  "AR          ?= lib ;\n",
+! "AS          ?= masm386 ;\n",
+  "CC          ?= cl /nologo ;\n",
+  "CCFLAGS     ?= \"\" ;\n",
+  "C++         ?= $(CC) ;\n",
+  "C++FLAGS    ?= $(CCFLAGS) ;\n",
+  "LINK        ?= link /nologo ;\n",
+  "LINKFLAGS   ?= \"\" ;\n",
+! "LINKLIBS    ?= $(VISUALC)\\\\lib\\\\advapi32.lib\n",
+! "$(VISUALC)\\\\lib\\\\libc.lib\n",
+! "$(VISUALC)\\\\lib\\\\oldnames.lib\n",
+! "$(VISUALC)\\\\lib\\\\gdi32.lib\n",
+! "$(VISUALC)\\\\lib\\\\user32.lib\n",
+! "$(VISUALC)\\\\lib\\\\kernel32.lib ;\n",
+  "OPTIM       ?= \"\" ;\n",
+! "STDHDRS     ?= $(VISUALC)\\\\include ;\n",
+  "UNDEFFLAG   ?= \"/u _\" ;\n",
+  "}\n",
+  "else if $(TOOLSET) = INTELC\n",
+--- 117,139 ----
+  "{\n",
+  "ECHO \"Compiler is Microsoft Visual C++\" ;\n",
+  "AR          ?= lib ;\n",
+! "AS          ?= nasmw ;\n",
+  "CC          ?= cl /nologo ;\n",
+  "CCFLAGS     ?= \"\" ;\n",
+  "C++         ?= $(CC) ;\n",
+  "C++FLAGS    ?= $(CCFLAGS) ;\n",
++ "RC          ?= rc ;\n",
++ "RCFLAGS     ?= /l 0x411 ;\n",
+  "LINK        ?= link /nologo ;\n",
+  "LINKFLAGS   ?= \"\" ;\n",
+! "LINKLIBS    ?= \\\"$(VISUALC)\\\\lib\\\\advapi32.lib\\\"\n",
+! "\\\"$(VISUALC)\\\\lib\\\\libc.lib\\\"\n",
+! "\\\"$(VISUALC)\\\\lib\\\\oldnames.lib\\\"\n",
+! "\\\"$(VISUALC)\\\\lib\\\\gdi32.lib\\\"\n",
+! "\\\"$(VISUALC)\\\\lib\\\\user32.lib\\\"\n",
+! "\\\"$(VISUALC)\\\\lib\\\\kernel32.lib\\\" ;\n",
+  "OPTIM       ?= \"\" ;\n",
+! "STDHDRS     ?= \\\"$(VISUALC)\\\\include\\\" ;\n",
+  "UNDEFFLAG   ?= \"/u _\" ;\n",
+  "}\n",
+  "else if $(TOOLSET) = INTELC\n",
+***************
+*** 794,799 ****
+--- 799,817 ----
+  "DEPENDS $(_t) : $(>:S=$(SUFLIB)) ;\n",
+  "NEEDLIBS on $(_t) += $(>:S=$(SUFLIB)) ;\n",
+  "}\n",
++ "rule LinkResource\n",
++ "{\n",
++ "local _s = [ FGristFiles $(>) ] ;\n",
++ "local _r = $(_s:S=.res) ;\n",
++ "local _t = [ FAppendSuffix $(<) : $(SUFEXE) ] ;\n",
++ "DEPENDS $(_t) : $(_r) ;\n",
++ "DEPENDS $(_r) : $(_s) ;\n",
++ "LOCATE on $(_r) = $(LOCATE_TARGET) ;\n",
++ "SEARCH on $(_s) = $(SEARCH_SOURCE) ;\n",
++ "RESOURCE on $(_t) = $(_r) ;\n",
++ "Rc $(_r) : $(_s) ;\n",
++ "Clean clean : $(_r) ;\n",
++ "}\n",
+  "rule Main\n",
+  "{\n",
+  "MainFromObjects $(<) : $(>:S=$(SUFOBJ)) ;\n",
+***************
+*** 1303,1310 ****
+  "}\n",
+  "actions As\n",
+  "{\n",
+! "$(AS) /Ml /p /v /w2 $(>) $(<) ,nul,nul;\n",
+! "}\n",
+  "actions Cc\n",
+  "{\n",
+  "$(CC) /c $(CCFLAGS) $(OPTIM) /Fo$(<) /I$(HDRS) /I$(STDHDRS) $(>)\n",
+--- 1321,1328 ----
+  "}\n",
+  "actions As\n",
+  "{\n",
+! "$(AS) -dWIN32 -f win32 -o $(<) $(>)  \n",
+! "}                                            \n",
+  "actions Cc\n",
+  "{\n",
+  "$(CC) /c $(CCFLAGS) $(OPTIM) /Fo$(<) /I$(HDRS) /I$(STDHDRS) $(>)\n",
+***************
+*** 1313,1321 ****
+  "{\n",
+  "$(C++) /c $(C++FLAGS) $(OPTIM) /Fo$(<) /I$(HDRS) /I$(STDHDRS) /Tp$(>)\n",
+  "}\n",
+! "actions Link bind NEEDLIBS\n",
+  "{\n",
+! "$(LINK) $(LINKFLAGS) /out:$(<) $(UNDEFS) $(>) $(NEEDLIBS) $(LINKLIBS)\n",
+  "}\n",
+  "}\n",
+  "else if $(TOOLSET) = VISUALC16\n",
+--- 1331,1343 ----
+  "{\n",
+  "$(C++) /c $(C++FLAGS) $(OPTIM) /Fo$(<) /I$(HDRS) /I$(STDHDRS) /Tp$(>)\n",
+  "}\n",
+! "actions Rc\n",
+  "{\n",
+! "$(RC) $(RCFLAGS) /i$(HDRS) /fo $(<) $(>) \n",
+! "}\n",
+! "actions Link bind NEEDLIBS RESOURCE\n",
+! "{\n",
+! "$(LINK) $(LINKFLAGS) /out:$(<) $(UNDEFS) $(>) $(NEEDLIBS) $(LINKLIBS) $(RESOURCE)\n",
+  "}\n",
+  "}\n",
+  "else if $(TOOLSET) = VISUALC16\n",
+***************
+*** 1343,1351 ****
+  "{\n",
+  "$(AR) $(<) -+$(>)\n",
+  "}\n",
+! "actions Link bind NEEDLIBS\n",
+  "{\n",
+! "$(LINK) -e$(<) $(LINKFLAGS) $(UNDEFS) -L$(LINKLIBS) $(NEEDLIBS) $(>)\n",
+  "}\n",
+  "actions C++\n",
+  "{\n",
+--- 1365,1373 ----
+  "{\n",
+  "$(AR) $(<) -+$(>)\n",
+  "}\n",
+! "actions As\n",
+  "{\n",
+! "$(AS) -dWIN32 -f obj -o $(<) $(>)\n",
+  "}\n",
+  "actions C++\n",
+  "{\n",
+***************
+*** 1354,1359 ****
+--- 1376,1389 ----
+  "actions Cc\n",
+  "{\n",
+  "$(CC) -c $(CCFLAGS) $(OPTIM) -I$(HDRS) -o$(<) $(>)\n",
++ "}\n",
++ "actions Rc\n",
++ "{\n",
++ "$(RC) $(RCFLAGS) -i$(HDRS) -fo $(<) $(>)\n",
++ "}\n",
++ "actions Link bind NEEDLIBS\n",
++ "{\n",
++ "$(LINK) -e$(<) $(LINKFLAGS) $(UNDEFS) $(LINKLIBS) $(NEEDLIBS) $(>)\n",
+  "}\n",
+  "}\n",
+  "else if $(TOOLSET) = MINGW\n",
+Only in ftjam: jamtest
+diff -c ftjam-2.3.5/variable.c ftjam/variable.c
+*** ftjam-2.3.5/variable.c	Mon Jul 30 09:00:53 2001
+--- ftjam/variable.c	Fri Nov 25 00:59:20 2005
+***************
+*** 104,110 ****
+--- 104,143 ----
+  		}
+  
+  		/* Do the split */
++ #if 1
++ 		pp = val + 1;
++ 	        for (;;) {
++ 		    while (*pp == split) pp++;
+  
++ 		    if (*pp == '\0') {
++ 			break;
++ 
++ 		    } else if (*pp == '"') {
++ 			pp++;
++ 			p = buf;
++ 			while (*pp) {
++ 			    if (*pp == '"') {
++ 				pp++;
++ 				break;
++ 			    }
++ 			    *p++ = *pp++;
++ 		    	}
++ 			*p = '\0';
++ 
++ 		    } else {
++ 			p = buf;
++ 			while (*pp) {
++ 			    if (*pp == split) {
++ 				pp++;
++ 				break;
++ 			    }
++ 			    *p++ = *pp++;
++ 		    	}
++ 			*p = '\0';
++ 		    }
++ 		    l = list_new( l, newstr( buf ) );
++ 		}
++ #else
+  		for( pp = val + 1; p = strchr( pp, split ); pp = p + 1 )
+  		{
+  		    strncpy( buf, pp, p - pp );
+***************
+*** 113,118 ****
+--- 146,152 ----
+  		}
+  
+  		l = list_new( l, newstr( pp ) );
++ #endif
+  
+  		/* Get name */
+  
+Only in ftjam: vssver.scc
