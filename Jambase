@@ -154,7 +154,7 @@
 
 # for perforce use -- jambase version
 
-JAMBASEDATE = 2012.07.01 ;
+JAMBASEDATE = 2018.06.07 ;
 
 # Initialize variables
 #
@@ -178,6 +178,9 @@ if $(NT)
                                PELLESC
 			       CYGWIN
                                VXWORKS
+                               RTX
+                               PIC32MX
+                               USRTOOL
                                ;
 
     # if the JAM_TOOLSET environment variable is defined, check that it is
@@ -454,6 +457,7 @@ if $(NT)
 	CCFLAGS     ?= "" ;
         C++         ?= $(CC) ;
         C++FLAGS    ?= $(CCFLAGS) -P ;
+        NOARSCAN     = true ;
     }
     else if $(JAM_TOOLSET) = VXWORKS
     {
@@ -466,6 +470,47 @@ if $(NT)
 		SUFOBJ       = .o ;
 		SUFLIB       = .a ;
     }
+    else if $(JAM_TOOLSET) = RTX
+    {
+        MSVCNT      ?= $(MSVCDIR) ;
+        local I ; if $(OSPLAT) = IA64 { I = ia64\\ ; } else { I = "" ; }
+        AR          ?= lib ;
+        AS          ?= masm386 ;
+        CC          ?= cl /nologo ;
+        CCFLAGS     ?= "" ;
+        C++         ?= $(CC) ;
+        C++FLAGS    ?= $(CCFLAGS) ;
+        LINK        ?= link /nologo ;
+        LINKFLAGS   ?= "" ;
+        LINKLIBS    ?= $(MSVCNT)\\lib\\$(I)libc.lib
+                $(MSVCNT)\\lib\\$(I)oldnames.lib
+                $(MSVCNT)\\lib\\$(I)kernel32.lib ;
+        OPTIM       ?= "" ;
+        STDHDRS     ?= $(VISUALC)\\include ;
+        UNDEFFLAG   ?= "/u _" ;
+    }
+    else if $(JAM_TOOLSET) = PIC32MX
+    {
+    	Echo "Compiler is PIC32MX" ;
+
+		AR           = pic32-ar -ru ;
+		AS           = pic32-as ;
+		ASFLAGS	     = -mprocessor=32MX695F512L ;
+		CC           = pic32-gcc ;
+		CCFLAGS      = -mprocessor=32MX695F512L ;
+		C++         ?= $(CC) ;
+		C++FLAGS    ?= $(CCFLAGS) -P ;
+		LINK	     = pic32-gcc ;
+		LINKFLAGS    = $(CCFLAGS) ;
+
+		SUFEXE       = .out ;
+		SUFOBJ       = .o ;
+		SUFLIB       = .a ;
+    }
+    else if $(JAM_TOOLSET) = USERTOOL
+    {
+        # user defined
+    }
     else
     {
 #
@@ -476,6 +521,11 @@ if $(NT)
     }
 
     STDHRS ?= "" ;
+
+	YACC        ?= bison -y ;
+	YACCGEN     ?= .c ;
+	YACCFILES   ?= y.tab ;
+	YACCFLAGS   ?= -d ;
 }
 else if $(OS2)
 {
@@ -1497,7 +1547,7 @@ rule SharedLibraryFromObjects
       MakeLocate $(_implib)        : $(LOCATE_TARGET) ;
       MakeLocate $(_implib:S=.exp) : $(LOCATE_TARGET) ;
 
-      if $(JAM_TOOLSET) in VISUALC BORLANDC LCC WATCOM DIGITALMARS
+if $(JAM_TOOLSET) in VISUALC BORLANDC LCC WATCOM DIGITALMARS RTX
       {
         SharedLink-$(JAM_TOOLSET) $(_l) : $(_s) : $(_implib) : $(_def) ;
       }
@@ -2265,9 +2315,13 @@ rule SubInclude
         Exit SubInclude $(<[1]) without prior SubDir $(<[1]) ;
     }
 
+    local save_SUBDIR_TOKENS = $(SUBDIR_TOKENS) ;
+    
     SubDir $(<) ;
 
     include $(JAMFILE:D=$(SUBDIR)) ;
+    
+    SubDir $(<[1]) $(save_SUBDIR_TOKENS) ;
 }
 
 rule SubRules
@@ -2505,7 +2559,8 @@ if $(OS2)
     rule FQuote { return "\"$(<)\"" ; }
     rule FIncludes { return /I$(<) ; }
 }
-else if $(NT) && $(JAM_TOOLSET) != MINGW && $(JAM_TOOLSET) != LCC
+
+else if $(NT) && $(JAM_TOOLSET) != MINGW && $(JAM_TOOLSET) != LCC && $(JAM_TOOLSET) != PIC32MX
 {
     rule FDefines { return /D$(<) ; }
     rule FIncludes { return /I$(<) ; }
@@ -2747,7 +2802,7 @@ if $(UNIX)
 
 if $(NT)
 {
-    if $(JAM_TOOLSET) = VISUALC || $(JAM_TOOLSET) = INTELC
+    if $(JAM_TOOLSET) in VISUALC INTELC RTX
     {
         actions updated together piecemeal Archive
         {

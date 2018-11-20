@@ -1,4 +1,6 @@
 #include "regexp.h"
+#include <string.h>
+#include <stdlib.h>
 
 #define  MAX_SUBST_STRING  4095
 

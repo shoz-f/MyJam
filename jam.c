@@ -186,7 +186,7 @@ main( int argc, char **argv, char **arg_environ )
 
 	argc--, argv++;
 
-	if( ( num_targets = getoptions( argc, argv, "d:j:f:gs:t:ano:qvb", optv, targets ) ) < 0 )
+	if( ( num_targets = getoptions( argc, argv, "d:j:f:gs:t:ano:qvbw", optv, targets ) ) < 0 )
 	{
 	    printf( "\nusage: jam [ options ] targets...\n\n" );
 
@@ -202,8 +202,8 @@ main( int argc, char **argv, char **arg_environ )
             printf( "-q      Quit quickly as soon as a target fails.\n" );
 	    printf( "-sx=y   Set variable x=y, overriding environment.\n" );
             printf( "-tx     Rebuild x, even if it is up-to-date.\n" );
-            printf( "-v      Print the version of jam and exit.\n\n" );
-
+            printf( "-v      Print the version of jam and exit.\n" );
+            printf( "-w      Read jam/Jambase instead of built-in Jambase.\n\n" );
 	    exit( EXITBAD );
 	}
 
@@ -326,6 +326,16 @@ main( int argc, char **argv, char **arg_environ )
         }
 # endif
 
+        /* Add JAMCMDARGS
+        */
+        {
+            LIST*  l = L0;
+
+            for ( n = 0; n < num_targets; n++ )
+                l = list_new( l, targets[n], 0 );
+
+            var_set( "JAMCMDARGS", l, VAR_SET );
+        }
 	/*
 	 * Jam defined variables OS, OSPLAT
 	 */
@@ -361,6 +371,9 @@ main( int argc, char **argv, char **arg_environ )
 		if (userbase) {
 		    parse_file(userbase);
 		}
+		else if ((s = getoptval(optv, 'w', 0))) {
+		    parse_file("jam/Jambase");
+		}
 		else {
 			parse_file( "+" );
 		}
@@ -384,17 +397,6 @@ main( int argc, char **argv, char **arg_environ )
 	    }
 	    globs.noexec++;
 	}
-
-    /* Add JAMCMDARGS
-     */
-     {
-        LIST*  l = L0;
-
-        for ( n = 0; n < num_targets; n++ )
-          l = list_new( l, targets[n], 0 );
-
-        var_set( "JAMCMDARGS", l, VAR_SET );
-     }
 
 	/* Now make target */
 
